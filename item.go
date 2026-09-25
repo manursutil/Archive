@@ -19,6 +19,12 @@ type Item struct {
 	Content string
 }
 
+type ItemRepr struct {
+	ID      int
+	Source  string
+	SavedAt string
+}
+
 func parseArg(arg string) (string, error) {
 	// determine if argument is a path to a file or a url
 	// url: http[s]://whatever.[com | org | co | ai]/something

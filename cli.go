@@ -12,7 +12,7 @@ func run(db *sql.DB, cmd string, args []string) {
 	case "add":
 		cmdAdd(db, args[0])
 	case "list":
-		// list(db)
+		cmdList(db)
 	case "del":
 		// del(db, id)
 	case "search":
@@ -35,5 +35,18 @@ func cmdAdd(db *sql.DB, arg string) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+
 	add(db, item)
+}
+
+func cmdList(db *sql.DB) {
+	items, err := list(db)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	for _, item := range items {
+		fmt.Printf("%d: %s [%s]\n", item.ID, item.Source, item.SavedAt)
+	}
 }
