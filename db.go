@@ -2,6 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
+
+	_ "modernc.org/sqlite"
 )
 
 func openDB() (*sql.DB, error) {
@@ -24,18 +27,35 @@ func openDB() (*sql.DB, error) {
 }
 
 func initDB(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS items (
-		id INT PRIMARY KEY AUTOINCREMENT,
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS items (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		source TEXT NOT NULL,
 		content TEXT,
 		savedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-	)`)
+	)`); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(`CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
+		content,
+		content='items',
+		content_rowid='id'
+	)`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
+		INSERT INTO items_fts(rowid, content) VALUES (new.id, new.content);
+	END;
+	CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
+		INSERT INTO items_fts(items_fts, rowid, content) VALUES ('delete', old.id, old.content);
+	END;`)
 
 	return err
 }
 
 func add(db *sql.DB, item Item) error {
-	_, err := db.Exec(`INSERT INTO items (url, content) VALUES (?, ?)`, item.Source, item.Content)
+	_, err := db.Exec(`INSERT INTO items (source, content) VALUES (?, ?)`, item.Source, item.Content)
 
 	return err
 }
@@ -73,4 +93,46 @@ func list(db *sql.DB) ([]ItemRepr, error) {
 	}
 
 	return items, nil
+}
+
+func del(db *sql.DB, id int) error {
+	_, err := db.Exec(`DELETE FROM items WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete error: %v", err)
+	}
+
+	return nil
+}
+
+func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
+	rows, err := db.Query(`
+		SELECT
+			i.id,
+			i.source,
+			snippet(items_fts, 0, '[', ']', '...', 20),
+			bm25(items_fts)
+		FROM items_fts
+		JOIN items i ON i.id = items_fts.rowid
+		WHERE items_fts MATCH ?
+		ORDER BY bm25(items_fts)
+	`, searchTerm)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]SearchResult, 0)
+
+	for rows.Next() {
+		var result SearchResult
+
+		err := rows.Scan(&result.ID, &result.Source, &result.Snippet, &result.Score)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, rows.Err()
 }

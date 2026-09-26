@@ -18,6 +18,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+	defer db.Close()
 
 	run(db, os.Args[1], os.Args[2:])
 }

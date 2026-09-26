@@ -4,20 +4,31 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 // run dispatches a command to its handler.
 func run(db *sql.DB, cmd string, args []string) {
 	switch cmd {
 	case "add":
+		checkArgsLength(args)
 		cmdAdd(db, args[0])
 	case "list":
 		cmdList(db)
 	case "del":
-		// del(db, id)
+		checkArgsLength(args)
+		cmdDel(db, args[0])
 	case "search":
-		// search(db, string)
+		checkArgsLength(args)
+		cmdSearch(db, args[0])
 	default:
+		printUsage()
+		os.Exit(1)
+	}
+}
+
+func checkArgsLength(args []string) {
+	if len(args) < 1 {
 		printUsage()
 		os.Exit(1)
 	}
@@ -36,7 +47,10 @@ func cmdAdd(db *sql.DB, arg string) {
 		os.Exit(1)
 	}
 
-	add(db, item)
+	if err := add(db, item); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func cmdList(db *sql.DB) {
@@ -48,5 +62,37 @@ func cmdList(db *sql.DB) {
 
 	for _, item := range items {
 		fmt.Printf("%d: %s [%s]\n", item.ID, item.Source, item.SavedAt)
+	}
+}
+
+func cmdDel(db *sql.DB, arg string) {
+	id, err := strconv.Atoi(arg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	if err := del(db, id); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Item %d deleted successfully!", id)
+}
+
+func cmdSearch(db *sql.DB, arg string) {
+	matches, err := search(db, arg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	for _, match := range matches {
+		fmt.Printf(
+			"[%d] %s\n    %s\n\n",
+			match.ID,
+			match.Source,
+			match.Snippet,
+		)
 	}
 }

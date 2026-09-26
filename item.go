@@ -25,6 +25,13 @@ type ItemRepr struct {
 	SavedAt string
 }
 
+type SearchResult struct {
+	ID      int
+	Source  string
+	Snippet string
+	Score   float64
+}
+
 func parseArg(arg string) (string, error) {
 	// determine if argument is a path to a file or a url
 	// url: http[s]://whatever.[com | org | co | ai]/something
