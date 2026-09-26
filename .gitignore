@@ -1,0 +1,11 @@
+# Go binaries and test output
+/main
+archive
+*.test
+*.out
+
+# Local SQLite database
+/archive.db*
+
+# OS files
+.DS_Store
