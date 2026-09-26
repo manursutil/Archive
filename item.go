@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -33,26 +32,12 @@ type SearchResult struct {
 }
 
 func parseArg(arg string) (string, error) {
-	// determine if argument is a path to a file or a url
-	// url: http[s]://whatever.[com | org | co | ai]/something
-	// path: path/to/file.[txt | pdf| ...]
-	urlRegex := `^https?://`
-	foundURL, err := regexp.MatchString(urlRegex, arg)
-	if err != nil {
-		return "", err
-	}
-
-	if foundURL {
+	if strings.HasPrefix(arg, "http://") || strings.HasPrefix(arg, "https://") {
 		return "url", nil
 	}
 
-	pathRegex := `(?i)\.(txt|pdf|doc|docx|odt|odf|md)$`
-	foundPath, err := regexp.MatchString(pathRegex, arg)
-	if err != nil {
-		return "", err
-	}
-
-	if foundPath {
+	switch strings.ToLower(filepath.Ext(arg)) {
+	case ".txt", ".pdf", ".doc", ".docx", ".odt", ".odf", ".md":
 		return "path", nil
 	}
 
@@ -86,10 +71,6 @@ func getItem(arg string) (Item, error) {
 		if err != nil {
 			return Item{}, err
 		}
-
-	default:
-		// Should never reach this
-		return Item{}, errors.New("invalid argument")
 	}
 
 	// 2. turn into item object
