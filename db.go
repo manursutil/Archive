@@ -8,10 +8,8 @@ import (
 )
 
 func openDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "archive.db")
-	if err != nil {
-		return nil, err
-	}
+	// The registered SQLite driver opens the connection on Ping, not sql.Open.
+	db, _ := sql.Open("sqlite", "archive.db")
 
 	if err := db.Ping(); err != nil {
 		db.Close()
