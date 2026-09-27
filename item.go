@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -203,8 +204,17 @@ func extractMarkdown(path string) (string, error) {
 }
 
 func extractPDF(path string) (string, error) {
-	// TODO: implement pdf extraction
-	return "", errors.New("pdf extraction not implemented yet")
+	out, err := exec.Command("pdftotext", "-enc", "UTF-8", path, "-").Output()
+	if err != nil {
+		return "", fmt.Errorf("pdftotext: %w (install poppler)", err)
+	}
+
+	text := strings.TrimSpace(string(out))
+	if text == "" {
+		return "", errors.New("unable to extarct text from pdf")
+	}
+
+	return text, nil
 }
 
 func extractDOCX(path string) (string, error) {

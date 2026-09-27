@@ -17,6 +17,7 @@ See [docs/architecture.md](docs/architecture.md) for the full diagram, the HTTP 
 
 - [Go](https://go.dev) 1.27+ for the CLI and HTTP server
 - [Deno](https://deno.com) 2.x to build the UI and run the desktop app
+- [Poppler](https://poppler.freedesktop.org)'s `pdftotext` on the `PATH` to add PDFs (`brew install poppler` on macOS, `apt install poppler-utils` on Debian/Ubuntu). Everything else works without it.
 
 Go dependencies (fetched automatically by `go build`):
 
@@ -74,7 +75,7 @@ archive serve                      # serve the UI + JSON API on localhost:8080
 | `http://`, `https://` URLs | ✅ Supported        |
 | `.txt`                    | ✅ Supported        |
 | `.md`                     | ✅ Supported        |
-| `.pdf`                    | 🚧 Not implemented  |
+| `.pdf`                    | ✅ Supported (needs `pdftotext`) |
 | `.docx`                   | ✅ Supported |
 | `.odt`            | ✅ Supported |
 
@@ -120,7 +121,7 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 ### Content
 
 - [x] Text extraction for DOCX and ODT files
-- [ ] Text extraction for PDF
+- [x] Text extraction for PDF
 - [x] Save a copy of the page's HTML alongside the extracted text (served at `/items/{id}/html`)
 - [x] Save the page's images and stylesheets, so the saved copy renders fully offline
 - [x] Skip duplicates when the same source is added twice

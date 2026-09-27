@@ -1,12 +1,14 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/base64"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -49,7 +51,7 @@ func TestFiles(t *testing.T) {
 			t.Fatal("missing file accepted")
 		}
 	}
-	for _, ext := range []string{"pdf", "doc", "docx", "odt", "odf", "csv"} {
+	for _, ext := range []string{"doc", "odf", "csv"} {
 		if _, err := extractContentFromFile("note." + ext); err == nil {
 			t.Fatalf("%s unexpectedly supported", ext)
 		}
@@ -63,6 +65,138 @@ func TestFiles(t *testing.T) {
 		if _, err := createItem(item.Source, item.Content); err == nil {
 			t.Fatalf("empty item accepted: %+v", item)
 		}
+	}
+}
+
+// writeZip builds a document with one entry, like a minimal docx or odt.
+func writeZip(t *testing.T, path, name, content string) {
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	zw := zip.NewWriter(f)
+	w, err := zw.Create(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(w, content); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDOCX(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "doc.docx")
+
+	writeZip(t, path, "word/document.xml", `<w:document xmlns:w="w"><w:body>
+		<w:p><w:r><w:t>Hello</w:t><w:tab/><w:t>world</w:t></w:r></w:p>
+		<w:p><w:r><w:t>one</w:t><w:br/><w:t>two &amp; three</w:t></w:r></w:p>
+		<w:p><w:r><w:instrText>ignored</w:instrText></w:r></w:p>
+	</w:body></w:document>`)
+
+	got, err := extractDOCX(path)
+	if want := "Hello\tworld\none\ntwo & three"; err != nil || got != want {
+		t.Fatalf("extractDOCX = %q, %v; want %q", got, err, want)
+	}
+
+	item, err := getItem(path)
+	if err != nil || item.Title != "doc" || item.Content != got {
+		t.Fatalf("getItem = %+v, %v", item, err)
+	}
+
+	for name, entry := range map[string][2]string{
+		"missing entry": {"content.xml", "<x/>"},
+		"bad xml":       {"word/document.xml", "<w:t>unclosed"},
+	} {
+		writeZip(t, path, entry[0], entry[1])
+		if _, err := extractDOCX(path); err == nil {
+			t.Errorf("%s: no error", name)
+		}
+	}
+
+	os.WriteFile(path, []byte("not a zip"), 0600)
+	if _, err := extractDOCX(path); err == nil {
+		t.Error("non-zip accepted")
+	}
+}
+
+func TestODT(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "doc.odt")
+
+	writeZip(t, path, "content.xml", `<office:document-content xmlns:office="o" xmlns:text="t"><office:body><office:text>
+		<text:h>Title</text:h>
+		<text:p>a<text:s text:c="3"/>b<text:tab/>c<text:line-break/>d<text:s/>e</text:p>
+		<text:p>x &lt; y <text:span>styled</text:span></text:p>
+		<text:p>bad count<text:s text:c="99999"/>.</text:p>
+	</office:text></office:body></office:document-content>`)
+
+	got, err := extractODT(path)
+	if want := "Title\na   b\tc\nd e\nx < y styled\nbad count ."; err != nil || got != want {
+		t.Fatalf("extractODT = %q, %v; want %q", got, err, want)
+	}
+
+	item, err := getItem(path)
+	if err != nil || item.Title != "doc" || item.Content != got {
+		t.Fatalf("getItem = %+v, %v", item, err)
+	}
+
+	writeZip(t, path, "word/document.xml", "<x/>")
+	if _, err := extractODT(path); err == nil {
+		t.Error("missing content.xml accepted")
+	}
+}
+
+// A one-page PDF without an xref table, which poppler rebuilds.
+const helloPDF = `%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << >> stream
+BT /F1 12 Tf 10 50 Td (TEXT) Tj ET
+endstream endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+trailer << /Root 1 0 R >>
+%%EOF
+`
+
+func TestPDF(t *testing.T) {
+	if _, err := exec.LookPath("pdftotext"); err != nil {
+		t.Skip("pdftotext not installed")
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "doc.pdf")
+
+	os.WriteFile(path, []byte(strings.Replace(helloPDF, "TEXT", "Hello PDF", 1)), 0600)
+
+	got, err := extractPDF(path)
+	if err != nil || got != "Hello PDF" {
+		t.Fatalf("extractPDF = %q, %v", got, err)
+	}
+
+	item, err := getItem(path)
+	if err != nil || item.Title != "doc" || item.Content != got {
+		t.Fatalf("getItem = %+v, %v", item, err)
+	}
+
+	for name, content := range map[string]string{
+		"no text": strings.Replace(helloPDF, "TEXT", "", 1),
+		"not pdf": "junk",
+	} {
+		os.WriteFile(path, []byte(content), 0600)
+		if _, err := extractPDF(path); err == nil {
+			t.Errorf("%s: no error", name)
+		}
+	}
+
+	if _, err := extractPDF(filepath.Join(dir, "missing.pdf")); err == nil {
+		t.Error("missing file accepted")
 	}
 }
 
