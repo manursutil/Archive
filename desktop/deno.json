@@ -1,6 +1,6 @@
 {
 "tasks": {
-    "dev": "cd .. && go build -o archive && cd desktop && ARCHIVE_BIN=../archive deno run -A --unstable-ffi main.ts",
+    "dev": "cd .. && go build -o ./bin/archive && cd desktop && ARCHIVE_BIN=../bin/archive deno run -A --unstable-ffi main.ts",
     "compile": "deno compile -A --unstable-ffi --output ../dist/archive-desktop main.ts"
   },
   "imports": {

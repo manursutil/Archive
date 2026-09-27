@@ -1,5 +1,5 @@
 # Go binaries and test output
-/main
+/bin
 archive
 *.test
 *.out
