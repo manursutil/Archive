@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+//go:embed ui
 var uiFiles embed.FS
 
 func cmdServe(db *sql.DB, port int) {
@@ -73,7 +74,11 @@ func cmdServe(db *sql.DB, port int) {
 	})
 
 	// Serve the frontend though go and static html + css + js files
-	ui, _ := fs.Sub(uiFiles, "ui")
+	ui, err := fs.Sub(uiFiles, "ui")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mux.Handle("GET /", http.FileServerFS(ui))
 
 	addr := fmt.Sprintf("localhost:%d", port)
