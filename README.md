@@ -1,23 +1,117 @@
 # Archive
 
-A small CLI to save and search web pages and documents in a local SQLite database (with FTS5 full-text search).
+Save web pages and documents to a local SQLite database and search them with full-text search (FTS5). Use it from the command line, or through a small desktop app. Everything stays on your machine.
 
-## Usage
-
-```sh
-archive add <url | path/to/file>   # save a page or file (.txt, .md, .pdf, .doc, .docx, .odt, .odf)
-archive list                       # list saved items
-archive search 'terms'             # full-text search
-archive del <id>                   # delete an item
-archive serve                      # serves api through http using port :8080
 ```
+ archive-desktop (Deno + native webview)
+        │  spawns + HTTP on localhost:8080
+        ▼
+ archive serve (Go) ── embedded ui/ ── SQLite + FTS5
+```
+
+See [docs/architecture.md](docs/architecture.md) for the full diagram, the HTTP API and the security model.
+
+## Requirements
+
+- [Go](https://go.dev) 1.27+ for the CLI and HTTP server
+- [Deno](https://deno.com) 2.x for the desktop app (optional)
+
+Go dependencies (fetched automatically by `go build`):
+
+- [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite): pure-Go SQLite with FTS5, so no cgo or C toolchain is needed
+- [`golang.org/x/net/html`](https://pkg.go.dev/golang.org/x/net/html): HTML parsing to extract page text
+
+Deno dependencies (declared in `desktop/deno.json`):
+
+- [`@webview/webview`](https://jsr.io/@webview/webview): native window via the OS webview. It downloads its native library once, on first run.
 
 ## Build
 
+CLI / server:
+
 ```sh
-go build -o archive
+go build -o bin/archive
 ```
 
-## Roadmap
+Desktop app, built into `dist/`:
 
-- A desktop frontend is on the way.
+```sh
+go build -o dist/archive
+cd desktop && deno task compile     # → dist/archive-desktop
+```
+
+`archive-desktop` looks for `archive` in its own directory, so keep the two binaries together.
+
+## Usage
+
+### CLI
+
+```sh
+archive add <url | path/to/file>   # save a web page or file
+archive list                       # list saved items
+archive search 'terms'             # full-text search
+archive del <id>                   # delete an item
+archive serve                      # serve the UI + JSON API on localhost:8080
+```
+
+### Supported sources
+
+| Source                    | Status              |
+| ------------------------- | ------------------- |
+| `http://`, `https://` URLs | ✅ Supported        |
+| `.txt`                    | ✅ Supported        |
+| `.md`                     | ✅ Supported        |
+| `.pdf`                    | 🚧 Not implemented  |
+| `.docx`                   | 🚧 Not implemented  |
+| `.doc`                    | 🚧 Not implemented  |
+| `.odt`, `.odf`            | 🚧 Not implemented  |
+
+### Desktop
+
+```sh
+dist/archive-desktop
+```
+
+Or open <http://localhost:8080> in a browser while `archive serve` is running.
+
+### Data
+
+The database is at `<user config dir>/archive/archive.db` (`~/Library/Application Support/archive/` on macOS, `~/.config/archive/` on Linux). The CLI and the desktop app share it. Override with `ARCHIVE_DB=/path/to/file.db`.
+
+## Development
+
+```sh
+go test ./...                  # Go tests
+cd desktop && deno task dev    # rebuild bin/archive and launch the desktop app
+```
+
+The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go rebuild (`deno task dev` does this for you). To debug the UI, run `bin/archive serve` and use your browser's devtools on <http://localhost:8080>.
+
+## Project layout
+
+```
+.
+├── main.go, cli.go, db.go, item.go, server.go   Go CLI + HTTP server
+├── ui/                                          frontend, embedded into the Go binary
+├── desktop/                                     Deno desktop shell
+└── docs/                                        documentation
+```
+
+## What's next
+
+### Content
+
+- [ ] Text extraction for PDF, DOCX, DOC and ODT files
+- [ ] Save a copy of the page (HTML and images) alongside the extracted text
+- [ ] Skip duplicates when the same source is added twice
+- [ ] Store a title for each item (page `<title>` or file name)
+
+### Search
+
+- [ ] Semantic search, alongside the existing full-text search
+
+### Desktop app
+
+- [ ] Better UI, likely rebuilt with Svelte and compiled into `ui/` so the Go embed keeps working
+- [ ] Native file picker for adding files
+- [ ] Package as a macOS `.app` bundle
