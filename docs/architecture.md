@@ -40,6 +40,7 @@ Archive is two programs that talk over HTTP on the loopback interface:
 | `server.go`       | HTTP API, embedded UI, localhost-only middleware                       |
 | `ui/`             | Svelte + Vite frontend; `go generate` builds `ui/dist`, embedded with `go:embed` |
 | `desktop/main.ts` | Deno shell: spawns the server and opens the webview                    |
+| `desktop/menu.ts` | macOS menu bar (Edit + Quit) so standard shortcuts work                |
 
 ## HTTP API
 
@@ -89,3 +90,5 @@ The desktop window uses [`@webview/webview`](https://jsr.io/@webview/webview), w
 The UI's "open" button calls `window.openExternal(url)`, which `archive-desktop` binds to the system browser (`open`, `xdg-open` or `explorer`). It accepts only `http(s)` URLs. In a plain browser the UI falls back to `window.open`.
 
 The add page's "choose file" button calls `window.pickFile()`, bound to a native open dialog (`osascript` on macOS, `zenity` on Linux) that returns an absolute path. Browsers never expose a file's path, so the button only appears in `archive-desktop`. The dialog runs synchronously: `webview.run()` blocks Deno's event loop, so an async binding would never resolve.
+
+On macOS, ⌘C/⌘V/⌘Z/⌘Q only work through the app's menu bar, and webview creates none. `desktop/menu.ts` builds an app menu and an Edit menu through the Objective-C runtime (Deno FFI) before the window runs. Quit closes the window instead of calling `terminate:`, so `main.ts` still gets to stop the server.

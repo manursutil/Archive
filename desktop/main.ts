@@ -27,6 +27,7 @@ try {
 
   const webview = new Webview();
   webview.title = "Archive";
+  if (Deno.build.os === "darwin") (await import("./menu.ts")).addEditMenu();
   webview.bind("openExternal", openExternal);
   webview.bind("pickFile", pickFile);
   webview.navigate(URL);
@@ -36,7 +37,7 @@ try {
   await server.status;
 }
 
-// The UI's "open" button: hand web links to the system browser.
+// use system browser to open saved html.
 function openExternal(url: string) {
   if (!/^https?:\/\//.test(url)) return;
 
@@ -49,9 +50,7 @@ function openExternal(url: string) {
   new Deno.Command(cmd, { args: [url] }).spawn();
 }
 
-// The add page's "choose file" button: a native open dialog. Returns the
-// absolute path, or "" if cancelled. Synchronous because webview.run() blocks
-// the event loop, so the window waits while the dialog is open.
+// native file picker
 function pickFile(): string {
   const [cmd, ...args] = Deno.build.os === "darwin"
     ? ["osascript", "-e", 'POSIX path of (choose file of type {"txt", "md"})']
