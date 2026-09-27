@@ -9,6 +9,7 @@ archive add <url | path/to/file>   # save a page or file (.txt, .md, .pdf, .doc,
 archive list                       # list saved items
 archive search 'terms'             # full-text search
 archive del <id>                   # delete an item
+archive serve                      # serves api through http using port :8080
 ```
 
 ## Build
