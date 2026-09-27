@@ -35,7 +35,7 @@ func TestCLI(t *testing.T) {
 		t.Helper()
 		cmd := exec.Command(binary, args...)
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "GOCOVERDIR="+coverDir)
+		cmd.Env = append(os.Environ(), "GOCOVERDIR="+coverDir, "ARCHIVE_DB=archive.db")
 
 		out, err := cmd.CombinedOutput()
 		gotCode := 0

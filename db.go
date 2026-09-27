@@ -7,9 +7,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func openDB() (*sql.DB, error) {
+func openDB(path string) (*sql.DB, error) {
 	// The registered SQLite driver opens the connection on Ping, not sql.Open.
-	db, _ := sql.Open("sqlite", "archive.db")
+	db, _ := sql.Open("sqlite", path)
 
 	if err := db.Ping(); err != nil {
 		db.Close()

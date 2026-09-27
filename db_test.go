@@ -33,7 +33,7 @@ func execSQL(t *testing.T, db *sql.DB, query string) {
 func TestDatabase(t *testing.T) {
 	t.Chdir(t.TempDir())
 
-	db, err := openDB()
+	db, err := openDB("archive.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestDatabaseErrors(t *testing.T) {
 				db.Close()
 			}
 
-			db, err := openDB()
+			db, err := openDB("archive.db")
 			if db != nil {
 				db.Close()
 			}
