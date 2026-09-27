@@ -19,16 +19,16 @@ type Item struct {
 }
 
 type ItemRepr struct {
-	ID      int
-	Source  string
-	SavedAt string
+	ID      int    `json:"id"`
+	Source  string `json:"source"`
+	SavedAt string `json:"savedAt"`
 }
 
 type SearchResult struct {
-	ID      int
-	Source  string
-	Snippet string
-	Score   float64
+	ID      int     `json:"id"`
+	Source  string  `json:"source"`
+	Snippet string  `json:"snippet"`
+	Score   float64 `json:"score"`
 }
 
 func parseArg(arg string) (string, error) {
