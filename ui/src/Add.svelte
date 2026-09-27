@@ -54,8 +54,7 @@
 
   <p class="callout">
     Web pages are fetched and saved with their HTML.<br />
-    .txt and .md files are read from disk. Use an absolute path{canPick ? " or choose a file" : ""}.<br />
-    .pdf, .docx and .odt are not supported yet.
+    .txt, .md, .pdf, .docx and .odt files are read from disk. Use an absolute path{canPick ? " or choose a file" : ""}.
   </p>
 </section>
 

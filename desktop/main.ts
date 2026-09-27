@@ -53,8 +53,16 @@ function openExternal(url: string) {
 // native file picker
 function pickFile(): string {
   const [cmd, ...args] = Deno.build.os === "darwin"
-    ? ["osascript", "-e", 'POSIX path of (choose file of type {"txt", "md"})']
-    : ["zenity", "--file-selection", "--file-filter=*.txt *.md"];
+    ? [
+      "osascript",
+      "-e",
+      'POSIX path of (choose file of type {"txt", "md", "pdf", "docx", "odt"})',
+    ]
+    : [
+      "zenity",
+      "--file-selection",
+      "--file-filter=*.txt *.md *.pdf *.docx *.odt",
+    ];
 
   const out = new Deno.Command(cmd, { args }).outputSync();
   return out.success ? new TextDecoder().decode(out.stdout).trim() : "";
