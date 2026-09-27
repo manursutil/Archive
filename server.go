@@ -2,11 +2,17 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
+
+var uiFiles embed.FS
 
 func cmdServe(db *sql.DB, port int) {
 	mux := http.NewServeMux()
@@ -66,6 +72,27 @@ func cmdServe(db *sql.DB, port int) {
 		json.NewEncoder(w).Encode(res)
 	})
 
+	// Serve the frontend though go and static html + css + js files
+	ui, _ := fs.Sub(uiFiles, "ui")
+	mux.Handle("GET /", http.FileServerFS(ui))
+
 	addr := fmt.Sprintf("localhost:%d", port)
-	http.ListenAndServe(addr, mux)
+	log.Fatal(http.ListenAndServe(addr, localOnly(mux)))
+}
+
+// accept only localhost requests
+func localOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Host, "localhost:") && !strings.HasPrefix(r.Host, "127.0.0.1:") {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		if r.Method == http.MethodPost && !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			http.Error(w, "json only", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
