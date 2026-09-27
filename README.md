@@ -119,7 +119,7 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 
 ### Desktop app
 
-- [ ] Better UI, likely rebuilt with Svelte and compiled into `ui/` so the Go embed keeps working
-- [ ] Native file picker for adding files
-- [ ] Viewer for saved pages (a sandboxed iframe on `/items/{id}/html`)
+- [x] Better UI, likely rebuilt with Svelte and compiled into `ui/` so the Go embed keeps working
+- [x] Native file picker for adding files
+- [x] Viewer for saved pages (a sandboxed iframe on `/items/{id}/html`)
 - [ ] Package as a macOS `.app` bundle
