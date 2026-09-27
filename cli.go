@@ -14,7 +14,6 @@ func run(db *sql.DB, cmd string, args []string) {
 		checkArgsLength(args)
 		cmdAdd(db, args[0])
 	case "list":
-		checkArgsLength(args)
 		cmdList(db)
 	case "del":
 		checkArgsLength(args)

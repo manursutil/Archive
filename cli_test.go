@@ -63,8 +63,7 @@ func TestCLI(t *testing.T) {
 		}
 
 		invoke(t, dir, 0, "", "add", "note.txt")
-		// The current dispatcher requires an argument even for list.
-		invoke(t, dir, 0, "1: note.txt [", "list", "unused")
+		invoke(t, dir, 0, "1: note.txt [", "list")
 		invoke(t, dir, 0, "[searchable]", "search", "searchable")
 		invoke(t, dir, 0, "Item 1 deleted successfully!", "del", "1")
 
@@ -73,7 +72,7 @@ func TestCLI(t *testing.T) {
 		}
 	})
 
-	for _, args := range [][]string{nil, {"unknown"}, {"add"}, {"list"}, {"del"}, {"search"}} {
+	for _, args := range [][]string{nil, {"unknown"}, {"add"}, {"del"}, {"search"}} {
 		t.Run("usage/"+strings.Join(args, "_"), func(t *testing.T) { invoke(t, t.TempDir(), 1, "Usage:", args...) })
 	}
 
@@ -85,7 +84,7 @@ func TestCLI(t *testing.T) {
 		{name: "invalid ID", args: []string{"del", "nope"}, want: "invalid syntax"},
 		{name: "invalid query", args: []string{"search", `"`}, want: "unterminated string"},
 		{name: "insert failure", schema: `CREATE TRIGGER reject_insert BEFORE INSERT ON items BEGIN SELECT RAISE(FAIL, 'insert blocked'); END`, args: []string{"add", "note.txt"}, want: "insert blocked"},
-		{name: "list failure", schema: `DROP TABLE items; CREATE TABLE items (id, source)`, args: []string{"list", "unused"}, want: "no such column: savedAt"},
+		{name: "list failure", schema: `DROP TABLE items; CREATE TABLE items (id, source)`, args: []string{"list"}, want: "no such column: savedAt"},
 		{name: "delete failure", schema: `CREATE TRIGGER reject_delete BEFORE DELETE ON items BEGIN SELECT RAISE(FAIL, 'delete blocked'); END; INSERT INTO items (source, content) VALUES ('source', 'hello')`, args: []string{"del", "1"}, want: "delete blocked"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -117,6 +116,6 @@ func TestCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		invoke(t, dir, 1, "unable to open database", "list", "unused")
+		invoke(t, dir, 1, "unable to open database", "list")
 	})
 }
