@@ -16,3 +16,6 @@ archive
 # Svelte UI
 /ui/node_modules
 /ui/dist
+
+# Build output
+/dist
