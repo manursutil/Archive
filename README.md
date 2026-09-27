@@ -25,28 +25,33 @@ Deno dependencies (declared in `desktop/deno.json`):
 
 - [`@webview/webview`](https://jsr.io/@webview/webview): native window via the OS webview. It downloads its native library once, on first run.
 
+## Platforms
+
+Archive supports **macOS** and **Linux**. It may run on Windows, but some desktop features don't work there and it isn't tested.
+
+| Feature                    | macOS | Linux               | Windows     |
+| -------------------------- | ----- | ------------------- | ----------- |
+| CLI and `archive serve`    | ✅    | ✅                  | ✅          |
+| Desktop app                | ✅    | ✅                  | ⚠️ untested |
+| "open ↗" in system browser | ✅    | ✅ (`xdg-open`)     | ⚠️ untested |
+| "choose file…" picker      | ✅    | ✅ (needs `zenity`) | ❌          |
+| Copy/paste shortcuts       | ✅    | ✅                  | ⚠️ untested |
+
+On Windows, `go generate` also needs `sh` on the `PATH` (for example from Git for Windows).
+
 ## Build
 
-CLI / server. `go generate` builds the Svelte UI into `ui/dist`, which `go build` embeds:
-
 ```sh
-go generate && go build -o bin/archive
+./build.sh      # → dist/archive, dist/archive-desktop
 ```
 
-UI development with hot reload, against a running `archive serve`:
+The script builds the Svelte UI into `ui/dist` (`go generate`), embeds it in the Go binary (`go build`), then compiles the desktop app (`deno task compile`). `archive-desktop` looks for `archive` in its own directory, so keep the two binaries together.
 
-```sh
-cd ui && deno task dev              # → http://localhost:5173
-```
-
-Desktop app, built into `dist/`:
+To build only the CLI / server:
 
 ```sh
 go generate && go build -o dist/archive
-cd desktop && deno task compile     # → dist/archive-desktop
 ```
-
-`archive-desktop` looks for `archive` in its own directory, so keep the two binaries together.
 
 ## Usage
 
@@ -89,16 +94,18 @@ The database is at `<user config dir>/archive/archive.db` (`~/Library/Applicatio
 ```sh
 go test ./...                  # Go tests
 cd desktop && deno task dev    # rebuild bin/archive and launch the desktop app
+cd ui && deno task dev         # UI with hot reload on http://localhost:5173
 ```
 
-The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go rebuild (`deno task dev` does this for you). To debug the UI, run `bin/archive serve` and use your browser's devtools on <http://localhost:8080>.
+The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go rebuild (`deno task dev` in `desktop/` does this for you). For hot reload, run `bin/archive serve` and `deno task dev` in `ui/`, which proxies API calls to port 8080.
 
 ## Project layout
 
 ```
 .
 ├── main.go, cli.go, db.go, item.go, server.go   Go CLI + HTTP server
-├── ui/                                          frontend, embedded into the Go binary
+├── build.sh                                     builds everything into dist/
+├── ui/                                          Svelte frontend, embedded into the Go binary
 ├── desktop/                                     Deno desktop shell
 └── docs/                                        documentation
 ```
