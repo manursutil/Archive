@@ -9,3 +9,6 @@ archive
 
 # OS files
 .DS_Store
+
+# Personal notes
+/guide.md
