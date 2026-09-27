@@ -51,6 +51,7 @@ Served on `localhost:8080` by `archive serve`.
 | GET    | `/items`      | List saved items (JSON)                      |
 | POST   | `/items`      | Add an item, body `{"source": "<url|path>"}` |
 | DELETE | `/items/{id}` | Delete an item                               |
+| GET    | `/items/{id}/html` | Saved copy of a web page (`404` for files) |
 | GET    | `/search?q=`  | Full-text search (JSON)                      |
 
 ## Database location
@@ -73,6 +74,12 @@ Any page open in your regular browser can send requests to `localhost:8080`. The
 
 1. **Cross-site POST.** A malicious page could submit a form that makes the server ingest a local file. POSTs must have `Content-Type: application/json`. Browsers can't send that cross-origin without a CORS preflight, which the server never approves. Other POSTs get `415`.
 2. **DNS rebinding.** An attacker's domain could resolve to `127.0.0.1`. Requests whose `Host` header isn't `localhost:…` or `127.0.0.1:…` get `403`.
+
+## Viewing saved pages
+
+A saved page is untrusted HTML. Served as-is from `localhost:8080`, its scripts would share the UI's origin and could call the API. `GET /items/{id}/html` sends `Content-Security-Policy: sandbox`, which runs the page in an opaque origin with scripts and forms disabled. This holds however the page is opened, so a future UI viewer can simply point an iframe at it.
+
+Only the HTML is saved. Relative links, images and stylesheets don't resolve, and absolute ones still load from the network.
 
 ## Webview
 

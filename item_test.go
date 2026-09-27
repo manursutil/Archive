@@ -116,7 +116,7 @@ func TestURL(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), tc.errText) {
 					t.Fatalf("got %+v, %v; want error %q", got, err, tc.errText)
 				}
-			} else if err != nil || got != (Item{Title: tc.title, Source: "https://example.com", Content: tc.want}) {
+			} else if err != nil || got != (Item{Title: tc.title, Source: "https://example.com", Content: tc.want, HTML: tc.html}) {
 				t.Fatalf("got %+v, %v", got, err)
 			}
 		})

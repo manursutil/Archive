@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -52,6 +53,18 @@ func TestDatabase(t *testing.T) {
 		if err := add(db, Item{Title: fmt.Sprintf("note %d", i), Source: fmt.Sprintf("note-%d.txt", i), Content: "hello searchable world"}); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	if err := add(db, Item{Source: "https://example.com", Content: "page", HTML: "<p>page</p>"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if page, err := getHTML(db, 13); err != nil || page != "<p>page</p>" {
+		t.Fatalf("getHTML = %q, %v", page, err)
+	}
+
+	if _, err := getHTML(db, 1); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("file has HTML: %v", err)
 	}
 
 	items, err = list(db)

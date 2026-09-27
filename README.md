@@ -102,9 +102,10 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 ### Content
 
 - [ ] Text extraction for PDF, DOCX, DOC and ODT files
-- [ ] Save a copy of the page (HTML and images) alongside the extracted text
-- [ ] Skip duplicates when the same source is added twice
-- [ ] Store a title for each item (page `<title>` or file name)
+- [x] Save a copy of the page's HTML alongside the extracted text (served at `/items/{id}/html`)
+- [ ] Save the page's images and stylesheets, so the saved copy renders fully offline
+- [x] Skip duplicates when the same source is added twice
+- [x] Store a title for each item (page `<title>` or file name)
 
 ### Search
 
@@ -114,4 +115,5 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 
 - [ ] Better UI, likely rebuilt with Svelte and compiled into `ui/` so the Go embed keeps working
 - [ ] Native file picker for adding files
+- [ ] Viewer for saved pages (a sandboxed iframe on `/items/{id}/html`)
 - [ ] Package as a macOS `.app` bundle

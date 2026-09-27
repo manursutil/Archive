@@ -30,6 +30,7 @@ func initDB(db *sql.DB) error {
 		title TEXT NULL,
 		source TEXT UNIQUE NOT NULL,
 		content TEXT,
+		html TEXT,
 		savedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`); err != nil {
 		return err
@@ -54,7 +55,7 @@ func initDB(db *sql.DB) error {
 }
 
 func add(db *sql.DB, item Item) error {
-	_, err := db.Exec(`INSERT INTO items (title, source, content) VALUES (?, ?, ?)`, item.Title, item.Source, item.Content)
+	_, err := db.Exec(`INSERT INTO items (title, source, content, html) VALUES (?, ?, ?, ?)`, item.Title, item.Source, item.Content, item.HTML)
 
 	return err
 }
@@ -86,6 +87,13 @@ func list(db *sql.DB) ([]ItemRepr, error) {
 	}
 
 	return items, nil
+}
+
+func getHTML(db *sql.DB, id int) (string, error) {
+	var page string
+	err := db.QueryRow(`SELECT html FROM items WHERE id = ? AND html != ''`, id).Scan(&page)
+
+	return page, err
 }
 
 func del(db *sql.DB, id int) error {

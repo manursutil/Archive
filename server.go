@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -61,6 +62,25 @@ func cmdServe(db *sql.DB, port int) {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	mux.HandleFunc("GET /items/{id}/html", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+
+		page, err := getHTML(db, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		// sandbox saved pages
+		w.Header().Set("Content-Security-Policy", "sandbox")
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(page))
 	})
 
 	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {

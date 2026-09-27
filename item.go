@@ -17,6 +17,7 @@ type Item struct {
 	Title   string
 	Source  string
 	Content string
+	HTML    string // raw page only for URLs
 }
 
 type ItemRepr struct {
@@ -53,7 +54,7 @@ func getItem(arg string) (Item, error) {
 		return Item{}, err
 	}
 
-	var title, content string
+	var title, content, page string
 
 	switch tp {
 	case "url":
@@ -68,6 +69,8 @@ func getItem(arg string) (Item, error) {
 			return Item{}, err
 		}
 
+		page = string(data)
+
 	case "path":
 		// 1. get contents
 		content, err = extractContentFromFile(arg)
@@ -81,6 +84,7 @@ func getItem(arg string) (Item, error) {
 	// 2. turn into item object
 	item, err := createItem(arg, content)
 	item.Title = title
+	item.HTML = page
 	return item, err
 }
 
