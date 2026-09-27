@@ -27,11 +27,38 @@ try {
 
   const webview = new Webview();
   webview.title = "Archive";
+  webview.bind("openExternal", openExternal);
+  webview.bind("pickFile", pickFile);
   webview.navigate(URL);
   webview.run();
 } finally {
   server.kill();
   await server.status;
+}
+
+// The UI's "open" button: hand web links to the system browser.
+function openExternal(url: string) {
+  if (!/^https?:\/\//.test(url)) return;
+
+  const os = Deno.build.os;
+  const cmd = os === "darwin"
+    ? "open"
+    : os === "windows"
+    ? "explorer"
+    : "xdg-open";
+  new Deno.Command(cmd, { args: [url] }).spawn();
+}
+
+// The add page's "choose file" button: a native open dialog. Returns the
+// absolute path, or "" if cancelled. Synchronous because webview.run() blocks
+// the event loop, so the window waits while the dialog is open.
+function pickFile(): string {
+  const [cmd, ...args] = Deno.build.os === "darwin"
+    ? ["osascript", "-e", 'POSIX path of (choose file of type {"txt", "md"})']
+    : ["zenity", "--file-selection", "--file-filter=*.txt *.md"];
+
+  const out = new Deno.Command(cmd, { args }).outputSync();
+  return out.success ? new TextDecoder().decode(out.stdout).trim() : "";
 }
 
 async function waitForServer(attempts: number) {

@@ -61,7 +61,7 @@ func add(db *sql.DB, item Item) error {
 }
 
 func list(db *sql.DB) ([]ItemRepr, error) {
-	query := `SELECT id, COALESCE(title, ''), source, savedAt FROM items LIMIT 10`
+	query := `SELECT id, COALESCE(title, ''), source, savedAt, substr(COALESCE(content, ''), 1, 300), COALESCE(html, '') != '' FROM items LIMIT 10`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -74,7 +74,7 @@ func list(db *sql.DB) ([]ItemRepr, error) {
 	for rows.Next() {
 		var item ItemRepr
 
-		err := rows.Scan(&item.ID, &item.Title, &item.Source, &item.SavedAt)
+		err := rows.Scan(&item.ID, &item.Title, &item.Source, &item.SavedAt, &item.Excerpt, &item.HasHTML)
 		if err != nil {
 			return []ItemRepr{}, err
 		}
@@ -96,6 +96,13 @@ func getHTML(db *sql.DB, id int) (string, error) {
 	return page, err
 }
 
+func getText(db *sql.DB, id int) (string, error) {
+	var text string
+	err := db.QueryRow(`SELECT COALESCE(content, '') FROM items WHERE id = ?`, id).Scan(&text)
+
+	return text, err
+}
+
 func del(db *sql.DB, id int) error {
 	_, err := db.Exec(`DELETE FROM items WHERE id = ?`, id)
 	if err != nil {
@@ -112,7 +119,8 @@ func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
 			COALESCE(i.title, ''),
 			i.source,
 			snippet(items_fts, 0, '[', ']', '...', 20),
-			bm25(items_fts)
+			bm25(items_fts),
+			COALESCE(i.html, '') != ''
 		FROM items_fts
 		JOIN items i ON i.id = items_fts.rowid
 		WHERE items_fts MATCH ?
@@ -128,7 +136,7 @@ func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
 	for rows.Next() {
 		var result SearchResult
 
-		err := rows.Scan(&result.ID, &result.Title, &result.Source, &result.Snippet, &result.Score)
+		err := rows.Scan(&result.ID, &result.Title, &result.Source, &result.Snippet, &result.Score, &result.HasHTML)
 		if err != nil {
 			return nil, err
 		}

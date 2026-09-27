@@ -13,7 +13,10 @@ import (
 	"strings"
 )
 
-//go:embed ui
+// Build the Svelte UI into ui/dist before `go build`.
+//
+//go:generate sh -c "cd ui && deno install && deno task build"
+//go:embed all:ui/dist
 var uiFiles embed.FS
 
 func cmdServe(db *sql.DB, port int) {
@@ -83,6 +86,23 @@ func cmdServe(db *sql.DB, port int) {
 		w.Write([]byte(page))
 	})
 
+	mux.HandleFunc("GET /items/{id}/text", func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+
+		text, err := getText(db, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Write([]byte(text))
+	})
+
 	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
 		res, err := search(db, r.URL.Query().Get("q"))
 		if err != nil {
@@ -93,8 +113,8 @@ func cmdServe(db *sql.DB, port int) {
 		json.NewEncoder(w).Encode(res)
 	})
 
-	// Serve the frontend though go and static html + css + js files
-	ui, err := fs.Sub(uiFiles, "ui")
+	// Serve the built Svelte frontend
+	ui, err := fs.Sub(uiFiles, "ui/dist")
 	if err != nil {
 		log.Fatal(err)
 	}

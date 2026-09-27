@@ -25,6 +25,8 @@ type ItemRepr struct {
 	Title   string `json:"title"`
 	Source  string `json:"source"`
 	SavedAt string `json:"savedAt"`
+	Excerpt string `json:"excerpt"`
+	HasHTML bool   `json:"hasHtml"`
 }
 
 type SearchResult struct {
@@ -33,6 +35,7 @@ type SearchResult struct {
 	Source  string  `json:"source"`
 	Snippet string  `json:"snippet"`
 	Score   float64 `json:"score"`
+	HasHTML bool    `json:"hasHtml"`
 }
 
 func parseArg(arg string) (string, error) {

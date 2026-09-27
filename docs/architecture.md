@@ -14,7 +14,7 @@ Archive is two programs that talk over HTTP on the loopback interface:
  │  4. when the window closes → kills the Go process       │
  │                                                         │
  │   ┌─────────────── native window (webview) ──────────┐  │
- │   │  ui/index.html + script.js + styles.css          │  │
+ │   │  ui/dist (Svelte build)                          │  │
  │   │     fetch("/items")  fetch("/search?q=...")      │  │
  │   └─────────────────────────┬────────────────────────┘  │
  └─────────────────────────────┼───────────────────────────┘
@@ -38,7 +38,7 @@ Archive is two programs that talk over HTTP on the loopback interface:
 | `item.go`         | Fetches URLs and reads files, then extracts plain text                 |
 | `db.go`           | SQLite schema, FTS5 index, queries                                     |
 | `server.go`       | HTTP API, embedded UI, localhost-only middleware                       |
-| `ui/`             | Frontend (plain HTML/CSS/JS, no build step), embedded with `go:embed`   |
+| `ui/`             | Svelte + Vite frontend; `go generate` builds `ui/dist`, embedded with `go:embed` |
 | `desktop/main.ts` | Deno shell: spawns the server and opens the webview                    |
 
 ## HTTP API
@@ -49,9 +49,10 @@ Served on `localhost:8080` by `archive serve`.
 | ------ | ------------- | -------------------------------------------- |
 | GET    | `/`           | The UI                                       |
 | GET    | `/items`      | List saved items (JSON)                      |
-| POST   | `/items`      | Add an item, body `{"source": "<url|path>"}` |
+| POST   | `/items`      | Add an item, body `{"source": "<url\|path>"}` |
 | DELETE | `/items/{id}` | Delete an item                               |
 | GET    | `/items/{id}/html` | Saved copy of a web page (`404` for files) |
+| GET    | `/items/{id}/text` | Extracted plain text (`text/plain`)      |
 | GET    | `/search?q=`  | Full-text search (JSON)                      |
 
 ## Database location
@@ -77,10 +78,14 @@ Any page open in your regular browser can send requests to `localhost:8080`. The
 
 ## Viewing saved pages
 
-A saved page is untrusted HTML. Served as-is from `localhost:8080`, its scripts would share the UI's origin and could call the API. `GET /items/{id}/html` sends `Content-Security-Policy: sandbox`, which runs the page in an opaque origin with scripts and forms disabled. This holds however the page is opened, so a future UI viewer can simply point an iframe at it.
+A saved page is untrusted HTML. Served as-is from `localhost:8080`, its scripts would share the UI's origin and could call the API. `GET /items/{id}/html` sends `Content-Security-Policy: sandbox`, which runs the page in an opaque origin with scripts and forms disabled. This holds however the page is opened, so the UI's preview pane points a sandboxed iframe at it. Files have no HTML, so the pane shows `/items/{id}/text` instead.
 
 Only the HTML is saved. Relative links, images and stylesheets don't resolve, and absolute ones still load from the network.
 
 ## Webview
 
 The desktop window uses [`@webview/webview`](https://jsr.io/@webview/webview), which binds the C [webview](https://github.com/webview/webview) library through Deno FFI. It uses the browser engine the OS already ships (WebKit on macOS, WebView2 on Windows, WebKitGTK on Linux), so no Chromium is bundled. On first run it downloads its native library (`libwebview.*`) and caches it. After that it works offline.
+
+The UI's "open" button calls `window.openExternal(url)`, which `archive-desktop` binds to the system browser (`open`, `xdg-open` or `explorer`). It accepts only `http(s)` URLs. In a plain browser the UI falls back to `window.open`.
+
+The add page's "choose file" button calls `window.pickFile()`, bound to a native open dialog (`osascript` on macOS, `zenity` on Linux) that returns an absolute path. Browsers never expose a file's path, so the button only appears in `archive-desktop`. The dialog runs synchronously: `webview.run()` blocks Deno's event loop, so an async binding would never resolve.

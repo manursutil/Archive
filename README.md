@@ -14,7 +14,7 @@ See [docs/architecture.md](docs/architecture.md) for the full diagram, the HTTP 
 ## Requirements
 
 - [Go](https://go.dev) 1.27+ for the CLI and HTTP server
-- [Deno](https://deno.com) 2.x for the desktop app (optional)
+- [Deno](https://deno.com) 2.x to build the UI and run the desktop app
 
 Go dependencies (fetched automatically by `go build`):
 
@@ -27,16 +27,22 @@ Deno dependencies (declared in `desktop/deno.json`):
 
 ## Build
 
-CLI / server:
+CLI / server. `go generate` builds the Svelte UI into `ui/dist`, which `go build` embeds:
 
 ```sh
-go build -o bin/archive
+go generate && go build -o bin/archive
+```
+
+UI development with hot reload, against a running `archive serve`:
+
+```sh
+cd ui && deno task dev              # → http://localhost:5173
 ```
 
 Desktop app, built into `dist/`:
 
 ```sh
-go build -o dist/archive
+go generate && go build -o dist/archive
 cd desktop && deno task compile     # → dist/archive-desktop
 ```
 

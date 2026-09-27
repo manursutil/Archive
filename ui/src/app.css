@@ -1,0 +1,111 @@
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-display: block;
+}
+
+/* palette */
+:root {
+  --amber: #ffa133;
+  --pumpkin: #e47b1a;
+  --foam: #bccabb;
+  --enamel: #eeeeee;
+  --cement: #c0c0c0;
+  --aluminum: #cccccc;
+  --ash: #8e8e8e;
+  --mud: #8a8a6f;
+  --clay: #6c6c58;
+  --dark: #444444;
+  --soot: #333333;
+  --carbon: #222222;
+
+  --bg: var(--enamel);
+  --fg: var(--dark);
+  --muted: var(--clay);
+  --line: var(--cement);
+  --panel: var(--aluminum);
+  --accent: var(--pumpkin);
+
+  color-scheme: light dark;
+  font: 11px/1.4 "Departure Mono", monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--carbon);
+    --fg: var(--cement);
+    --muted: var(--mud);
+    --line: var(--soot);
+    --panel: var(--cement);
+    --accent: var(--amber);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+::selection {
+  color: var(--bg);
+  background: var(--fg);
+}
+
+a {
+  color: currentColor;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+input,
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 11px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  color: var(--accent);
+  border-color: currentColor;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.label {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.error {
+  color: var(--accent);
+}
