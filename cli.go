@@ -22,6 +22,8 @@ func run(db *sql.DB, cmd string, args []string) {
 	case "search":
 		checkArgsLength(args)
 		cmdSearch(db, args[0])
+	case "serve":
+		cmdServe(db, 8080)
 	default:
 		printUsage()
 		os.Exit(1)

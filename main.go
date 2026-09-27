@@ -28,6 +28,7 @@ func printUsage() {
   - archive add <url | path/to/file>
   - archive list
   - archive del <id>
-  - archive search 'terms to search'`,
+  - archive search 'terms to search'
+	- archive serve`,
 	)
 }
