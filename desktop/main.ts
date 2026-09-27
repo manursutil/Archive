@@ -1,6 +1,6 @@
 // get the go binary - done
-// start the go server - done 
-// ping the go server - done 
+// start the go server - done
+// ping the go server - done
 // create the native webview window - done
 // kill the server wehn closed - done
 
@@ -10,7 +10,8 @@ import { dirname, join } from "node:path";
 const PORT = 8080;
 const URL = `http://localhost:${PORT}`;
 
-const bin = Deno.env.get("ARCHIVE_BIN") ?? join(dirname(Deno.execPath()), "archive");
+const bin = Deno.env.get("ARCHIVE_BIN") ??
+  join(dirname(Deno.execPath()), "archive");
 
 const server = new Deno.Command(bin, {
   args: ["serve"],
@@ -39,12 +40,12 @@ async function waitForServer(attempts: number) {
       await fetch(`${URL}/items`).then((r) => r.body?.cancel());
       return;
     } catch {
-      // 
       await new Promise((r) => setTimeout(r, 100));
     }
   }
 
   server.kill();
-  throw new Error(`archive server did not start on ${URL}. Check port availability`);
-  
+  throw new Error(
+    `archive server did not start on ${URL}. Check port availability`,
+  );
 }
