@@ -81,7 +81,7 @@ Any page open in your regular browser can send requests to `localhost:8080`. The
 
 A saved page is untrusted HTML. Served as-is from `localhost:8080`, its scripts would share the UI's origin and could call the API. `GET /items/{id}/html` sends `Content-Security-Policy: sandbox`, which runs the page in an opaque origin with scripts and forms disabled. This holds however the page is opened, so the UI's preview pane points a sandboxed iframe at it. Files have no HTML, so the pane shows `/items/{id}/text` instead.
 
-Only the HTML is saved. Relative links, images and stylesheets don't resolve, and absolute ones still load from the network.
+When a page is saved, its images and stylesheets (including `@import`s and CSS `url()`s such as fonts and backgrounds) are downloaded and embedded as `data:` URIs, so the copy renders offline. `srcset` is renamed to `data-srcset` so the browser uses the embedded `src`. Assets that fail to download keep their absolute URL. Scripts aren't saved: the sandbox would block them anyway.
 
 ## Webview
 

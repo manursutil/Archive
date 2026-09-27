@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -120,5 +122,45 @@ func TestURL(t *testing.T) {
 				t.Fatalf("got %+v, %v", got, err)
 			}
 		})
+	}
+}
+
+func TestInlineAssets(t *testing.T) {
+	old := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = old })
+
+	assets := map[string][2]string{
+		"https://example.com/a/pic.png":  {"image/png", "PNG"},
+		"https://example.com/a/site.css": {"text/css", `@import "more.css"; body { background: url(bg.gif) }`},
+		"https://example.com/a/more.css": {"text/css", `@import url(site.css); p { color: red }`},
+		"https://example.com/a/bg.gif":   {"image/gif", "GIF"},
+	}
+
+	http.DefaultTransport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		a, ok := assets[r.URL.String()]
+		if !ok {
+			return &http.Response{StatusCode: 404, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header)}, nil
+		}
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(a[1])), Header: http.Header{"Content-Type": {a[0]}}}, nil
+	})
+
+	b64 := func(s string) string { return base64.StdEncoding.EncodeToString([]byte(s)) }
+	base, _ := url.Parse("https://example.com/a/page.html")
+	got := inlineAssets([]byte(`<link rel="stylesheet" href="site.css" media="screen"><img src="pic.png" srcset="pic-2x.png 2x"><img src="/gone.png"><div style="background:url('bg.gif')"></div><svg><rect fill="url(#g)"/></svg>`), base)
+
+	for _, want := range []string{
+		`<style media="screen">@import url("data:text/css;base64,` + b64(`@import url("https://example.com/a/site.css"); p { color: red }`) + `"); body { background: url("data:image/gif;base64,` + b64("GIF") + `") }</style>`,
+		`<img src="data:image/png;base64,` + b64("PNG") + `" data-srcset="pic-2x.png 2x"/>`,
+		`<img src="https://example.com/gone.png"/>`,
+		`style="background:url(&#34;data:image/gif;base64,` + b64("GIF") + `&#34;)"`,
+		`fill="url(#g)"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s\nin %s", want, got)
+		}
+	}
+
+	if page := "<p>no assets</p>"; inlineAssets([]byte(page), base) != page {
+		t.Error("page without assets was rewritten")
 	}
 }
