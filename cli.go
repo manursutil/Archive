@@ -63,7 +63,7 @@ func cmdList(db *sql.DB) {
 	}
 
 	for _, item := range items {
-		fmt.Printf("%d: %s [%s]\n", item.ID, item.Source, item.SavedAt)
+		fmt.Printf("%d: %s - %s [%s]\n", item.ID, item.Title, item.Source, item.SavedAt)
 	}
 }
 
@@ -91,8 +91,9 @@ func cmdSearch(db *sql.DB, arg string) {
 
 	for _, match := range matches {
 		fmt.Printf(
-			"[%d] %s\n    %s\n\n",
+			"[%d] %s - %s\n    %s\n\n",
 			match.ID,
+			match.Title,
 			match.Source,
 			match.Snippet,
 		)

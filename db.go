@@ -27,7 +27,8 @@ func openDB(path string) (*sql.DB, error) {
 func initDB(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS items (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		source TEXT NOT NULL,
+		title TEXT NULL,
+		source TEXT UNIQUE NOT NULL,
 		content TEXT,
 		savedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`); err != nil {
@@ -53,13 +54,13 @@ func initDB(db *sql.DB) error {
 }
 
 func add(db *sql.DB, item Item) error {
-	_, err := db.Exec(`INSERT INTO items (source, content) VALUES (?, ?)`, item.Source, item.Content)
+	_, err := db.Exec(`INSERT INTO items (title, source, content) VALUES (?, ?, ?)`, item.Title, item.Source, item.Content)
 
 	return err
 }
 
 func list(db *sql.DB) ([]ItemRepr, error) {
-	query := `SELECT id, source, savedAt FROM items LIMIT 10`
+	query := `SELECT id, COALESCE(title, ''), source, savedAt FROM items LIMIT 10`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -70,20 +71,14 @@ func list(db *sql.DB) ([]ItemRepr, error) {
 	items := make([]ItemRepr, 0)
 
 	for rows.Next() {
-		var id int
-		var source string
-		var savedAt string
+		var item ItemRepr
 
-		err := rows.Scan(&id, &source, &savedAt)
+		err := rows.Scan(&item.ID, &item.Title, &item.Source, &item.SavedAt)
 		if err != nil {
 			return []ItemRepr{}, err
 		}
 
-		items = append(items, ItemRepr{
-			ID:      id,
-			Source:  source,
-			SavedAt: savedAt,
-		})
+		items = append(items, item)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -106,6 +101,7 @@ func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
 	rows, err := db.Query(`
 		SELECT
 			i.id,
+			COALESCE(i.title, ''),
 			i.source,
 			snippet(items_fts, 0, '[', ']', '...', 20),
 			bm25(items_fts)
@@ -124,7 +120,7 @@ func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
 	for rows.Next() {
 		var result SearchResult
 
-		err := rows.Scan(&result.ID, &result.Source, &result.Snippet, &result.Score)
+		err := rows.Scan(&result.ID, &result.Title, &result.Source, &result.Snippet, &result.Score)
 		if err != nil {
 			return nil, err
 		}

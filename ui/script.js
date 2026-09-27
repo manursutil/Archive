@@ -3,7 +3,7 @@ const out = document.getElementById("out")
 function render(rows, detail) {
   out.replaceChildren(...rows.map(row => {
     const li = document.createElement("li");
-    li.textContent = row.source + " ";
+    li.textContent = (row.title || row.source) + " ";
 
     const meta = document.createElement("span");
     meta.className = "meta";

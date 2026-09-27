@@ -39,7 +39,7 @@ func TestFiles(t *testing.T) {
 		}
 
 		got, err := getItem(path)
-		if err != nil || got != (Item{Source: path, Content: content}) {
+		if err != nil || got != (Item{Title: "note", Source: path, Content: content}) {
 			t.Fatalf("getItem = %+v, %v", got, err)
 		}
 
@@ -79,11 +79,11 @@ func TestURL(t *testing.T) {
 	t.Cleanup(func() { http.DefaultTransport = old })
 
 	for _, tc := range []struct {
-		name, html, want, errText string
-		status                    int
-		broken                    bool
+		name, html, title, want, errText string
+		status                           int
+		broken                           bool
 	}{
-		{name: "text", status: 200, html: `<html><head><style>hidden</style></head><body> <h1>Hello &amp; goodbye</h1><script>hidden</script><noscript>hidden</noscript><svg><text>hidden</text></svg><p>World</p> </body></html>`, want: "Hello & goodbye World"},
+		{name: "text", status: 200, title: "Greeting", html: `<html><head><title> Greeting </title><style>hidden</style></head><body> <h1>Hello &amp; goodbye</h1><script>hidden</script><noscript>hidden</noscript><svg><text>hidden</text></svg><p>World</p> </body></html>`, want: "Greeting Hello & goodbye World"},
 		{name: "malformed HTML", status: 200, html: `<p>Hello <b>world`, want: "Hello world"},
 		{name: "empty", status: 200, errText: "cannot create empty item"},
 		{name: "status", status: 404, errText: "404: failed to fetch url"},
@@ -116,7 +116,7 @@ func TestURL(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), tc.errText) {
 					t.Fatalf("got %+v, %v; want error %q", got, err, tc.errText)
 				}
-			} else if err != nil || got != (Item{Source: "https://example.com", Content: tc.want}) {
+			} else if err != nil || got != (Item{Title: tc.title, Source: "https://example.com", Content: tc.want}) {
 				t.Fatalf("got %+v, %v", got, err)
 			}
 		})

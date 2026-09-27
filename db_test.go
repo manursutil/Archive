@@ -49,7 +49,7 @@ func TestDatabase(t *testing.T) {
 	}
 
 	for i := 0; i < 12; i++ {
-		if err := add(db, Item{Source: fmt.Sprintf("note-%d.txt", i), Content: "hello searchable world"}); err != nil {
+		if err := add(db, Item{Title: fmt.Sprintf("note %d", i), Source: fmt.Sprintf("note-%d.txt", i), Content: "hello searchable world"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -59,7 +59,7 @@ func TestDatabase(t *testing.T) {
 		t.Fatalf("list limit = %v, %v", items, err)
 	}
 
-	if items[0].ID != 1 || items[0].Source != "note-0.txt" || items[0].SavedAt == "" {
+	if items[0].ID != 1 || items[0].Title != "note 0" || items[0].Source != "note-0.txt" || items[0].SavedAt == "" {
 		t.Fatalf("bad item: %+v", items[0])
 	}
 
@@ -68,7 +68,7 @@ func TestDatabase(t *testing.T) {
 		t.Fatalf("search = %v, %v", matches, err)
 	}
 
-	if matches[0].ID != 1 || matches[0].Source != "note-0.txt" || !strings.Contains(matches[0].Snippet, "[searchable]") || matches[0].Score >= 0 {
+	if matches[0].ID != 1 || matches[0].Title != "note 0" || matches[0].Source != "note-0.txt" || !strings.Contains(matches[0].Snippet, "[searchable]") || matches[0].Score >= 0 {
 		t.Fatalf("bad match: %+v", matches[0])
 	}
 
@@ -129,7 +129,7 @@ func TestDatabaseErrors(t *testing.T) {
 	t.Run("list scan", func(t *testing.T) {
 		db := testDB(t)
 
-		execSQL(t, db, `CREATE TABLE items (id, source, savedAt); INSERT INTO items VALUES ('bad', 'source', 'today')`)
+		execSQL(t, db, `CREATE TABLE items (id, title, source, savedAt); INSERT INTO items VALUES ('bad', 'title', 'source', 'today')`)
 
 		if _, err := list(db); err == nil {
 			t.Fatal("invalid ID accepted")
@@ -138,7 +138,7 @@ func TestDatabaseErrors(t *testing.T) {
 	t.Run("list iteration", func(t *testing.T) {
 		db := testDB(t)
 
-		execSQL(t, db, `CREATE VIEW items AS SELECT 1 AS id, 'source' AS source, 'today' AS savedAt UNION ALL SELECT abs(-9223372036854775808), 'source', 'today'`)
+		execSQL(t, db, `CREATE VIEW items AS SELECT 1 AS id, 'title' AS title, 'source' AS source, 'today' AS savedAt UNION ALL SELECT abs(-9223372036854775808), 'title', 'source', 'today'`)
 
 		if _, err := list(db); err == nil || !strings.Contains(err.Error(), "integer overflow") {
 			t.Fatalf("list = %v", err)
@@ -147,7 +147,7 @@ func TestDatabaseErrors(t *testing.T) {
 	t.Run("search scan", func(t *testing.T) {
 		db := testDB(t)
 
-		execSQL(t, db, `CREATE TABLE items (id INTEGER PRIMARY KEY, source, content, savedAt)`)
+		execSQL(t, db, `CREATE TABLE items (id INTEGER PRIMARY KEY, title, source, content, savedAt)`)
 
 		if err := initDB(db); err != nil {
 			t.Fatal(err)

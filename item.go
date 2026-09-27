@@ -14,18 +14,21 @@ import (
 )
 
 type Item struct {
+	Title   string
 	Source  string
 	Content string
 }
 
 type ItemRepr struct {
 	ID      int    `json:"id"`
+	Title   string `json:"title"`
 	Source  string `json:"source"`
 	SavedAt string `json:"savedAt"`
 }
 
 type SearchResult struct {
 	ID      int     `json:"id"`
+	Title   string  `json:"title"`
 	Source  string  `json:"source"`
 	Snippet string  `json:"snippet"`
 	Score   float64 `json:"score"`
@@ -50,7 +53,7 @@ func getItem(arg string) (Item, error) {
 		return Item{}, err
 	}
 
-	var content string
+	var title, content string
 
 	switch tp {
 	case "url":
@@ -60,7 +63,7 @@ func getItem(arg string) (Item, error) {
 			return Item{}, err
 		}
 
-		content, err = extractHTML(data)
+		title, content, err = extractHTML(data)
 		if err != nil {
 			return Item{}, err
 		}
@@ -71,10 +74,13 @@ func getItem(arg string) (Item, error) {
 		if err != nil {
 			return Item{}, err
 		}
+
+		title = strings.TrimSuffix(filepath.Base(arg), filepath.Ext(arg))
 	}
 
 	// 2. turn into item object
 	item, err := createItem(arg, content)
+	item.Title = title
 	return item, err
 }
 
@@ -97,12 +103,13 @@ func fetchURL(url string) ([]byte, error) {
 	return data, nil
 }
 
-func extractHTML(data []byte) (string, error) {
+func extractHTML(data []byte) (string, string, error) {
 	doc, err := html.Parse(bytes.NewReader(data))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
+	var title string
 	var text []string
 
 	var walk func(*html.Node)
@@ -111,6 +118,10 @@ func extractHTML(data []byte) (string, error) {
 			switch n.Data {
 			case "script", "style", "noscript", "svg":
 				return
+			case "title":
+				if title == "" && n.FirstChild != nil {
+					title = strings.TrimSpace(n.FirstChild.Data)
+				}
 			}
 		}
 
@@ -129,7 +140,7 @@ func extractHTML(data []byte) (string, error) {
 
 	walk(doc)
 
-	return strings.Join(text, " "), nil
+	return title, strings.Join(text, " "), nil
 }
 
 func extractContentFromFile(path string) (string, error) {
