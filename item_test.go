@@ -15,8 +15,8 @@ import (
 func TestParseArg(t *testing.T) {
 	for _, tc := range []struct{ arg, want string }{
 		{"http://example.com", "url"}, {"https://example.com/file.txt", "url"},
-		{"a.txt", "path"}, {"a.MD", "path"}, {"a.pdf", "path"}, {"a.doc", "path"},
-		{"a.docx", "path"}, {"a.odt", "path"}, {"a.odf", "path"},
+		{"a.txt", "path"}, {"a.MD", "path"}, {"a.pdf", "path"}, {"a.doc", ""},
+		{"a.docx", "path"}, {"a.odt", "path"}, {"a.odf", ""},
 		{"", ""}, {"a.csv", ""}, {"a.txt.bak", ""},
 	} {
 		t.Run(tc.arg, func(t *testing.T) {

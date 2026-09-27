@@ -2,21 +2,19 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
 )
 
 var client = &http.Client{Timeout: 30 * time.Second}
@@ -52,7 +50,7 @@ func parseArg(arg string) (string, error) {
 	}
 
 	switch strings.ToLower(filepath.Ext(arg)) {
-	case ".txt", ".pdf", ".doc", ".docx", ".odt", ".odf", ".md":
+	case ".txt", ".pdf", ".docx", ".odt", ".md":
 		return "path", nil
 	}
 
@@ -119,158 +117,7 @@ func fetchURL(url string) ([]byte, string, error) {
 	return data, res.Header.Get("Content-Type"), nil
 }
 
-var cssRef = regexp.MustCompile(`url\(\s*['"]?([^'")\s]*)['"]?\s*\)|@import\s*['"]([^'"]*)['"]`)
-
 // TODO: maybe move the extract logic to another file?
-
-// embed images and styleshe page is returned unchanged when it references nothing to inline.
-func inlineAssets(page []byte, base *url.URL) string {
-	doc, err := html.Parse(bytes.NewReader(page))
-	if err != nil || base == nil {
-		return string(page)
-	}
-
-	changed := false
-	cache := map[string]string{}
-
-	var inlineCSS func(css string, base *url.URL) string
-
-	embed := func(ref string, base *url.URL) string {
-		ref = strings.TrimSpace(ref)
-		if ref == "" || ref[0] == '#' {
-			return ref
-		}
-
-		u, err := base.Parse(ref)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-			return ref
-		}
-
-		key := u.String()
-		if v, ok := cache[key]; ok {
-			return v
-		}
-		cache[key] = key
-		changed = true
-
-		data, ct, err := fetchURL(key)
-		if err != nil {
-			return key
-		}
-
-		if ct == "" {
-			ct = http.DetectContentType(data)
-		}
-
-		if mt, _, _ := mime.ParseMediaType(ct); mt == "text/css" {
-			data = []byte(inlineCSS(string(data), u))
-		}
-
-		cache[key] = "data:" + strings.ReplaceAll(ct, " ", "") + ";base64," + base64.StdEncoding.EncodeToString(data)
-		return cache[key]
-	}
-
-	inlineCSS = func(css string, base *url.URL) string {
-		return cssRef.ReplaceAllStringFunc(css, func(m string) string {
-			s := cssRef.FindStringSubmatch(m)
-			if strings.HasPrefix(m, "@import") {
-				return `@import url("` + embed(s[2], base) + `")`
-			}
-			return `url("` + embed(s[1], base) + `")`
-		})
-	}
-
-	attr := func(n *html.Node, key string) *html.Attribute {
-		for i := range n.Attr {
-			if n.Attr[i].Key == key {
-				return &n.Attr[i]
-			}
-		}
-		return nil
-	}
-
-	var walk func(*html.Node)
-	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode {
-			if a := attr(n, "style"); a != nil {
-				a.Val = inlineCSS(a.Val, base)
-			}
-
-			switch n.Data {
-			case "base":
-				if a := attr(n, "href"); a != nil {
-					if u, err := base.Parse(a.Val); err == nil {
-						base = u
-					}
-				}
-
-			case "img":
-				if a := attr(n, "src"); a != nil {
-					a.Val = embed(a.Val, base)
-				}
-				fallthrough
-
-			case "source":
-				if a := attr(n, "srcset"); a != nil {
-					a.Key = "data-srcset"
-					changed = true
-				}
-
-			case "style":
-				if c := n.FirstChild; c != nil && c.Type == html.TextNode {
-					c.Data = inlineCSS(c.Data, base)
-				}
-
-			case "link":
-				rel, href := attr(n, "rel"), attr(n, "href")
-				if rel == nil || href == nil || !strings.Contains(strings.ToLower(rel.Val), "stylesheet") {
-					break
-				}
-
-				u, err := base.Parse(href.Val)
-				if err != nil {
-					break
-				}
-				cache[u.String()] = u.String()
-
-				data, _, err := fetchURL(u.String())
-				if err != nil {
-					href.Val = u.String()
-					changed = true
-					break
-				}
-
-				var keep []html.Attribute
-				if m := attr(n, "media"); m != nil {
-					keep = append(keep, *m)
-				}
-
-				n.Data, n.DataAtom, n.Attr = "style", atom.Style, keep
-				n.AppendChild(&html.Node{Type: html.TextNode, Data: inlineCSS(string(data), u)})
-				changed = true
-
-				return
-			}
-		}
-
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			walk(c)
-		}
-	}
-
-	walk(doc)
-
-	if !changed {
-		return string(page)
-	}
-
-	var buf bytes.Buffer
-	if err := html.Render(&buf, doc); err != nil {
-		return string(page)
-	}
-
-	return buf.String()
-}
 
 func extractHTML(data []byte) (string, string, error) {
 	doc, err := html.Parse(bytes.NewReader(data))
@@ -328,11 +175,8 @@ func extractContentFromFile(path string) (string, error) {
 	case ".docx":
 		return extractDOCX(path)
 
-	case ".odt", ".odf":
+	case ".odt":
 		return extractODT(path)
-
-	case ".doc":
-		return "", errors.New("doc extraction not implemented yet")
 
 	default:
 		return "", fmt.Errorf("unsupported file type: %s", ext)
@@ -364,13 +208,107 @@ func extractPDF(path string) (string, error) {
 }
 
 func extractDOCX(path string) (string, error) {
-	// TODO: implement docx extraction
-	return "", errors.New("docx extraction not implemented yet")
+	data, err := readZip(path, "word/document.xml")
+	if err != nil {
+		return "", err
+	}
+
+	var words strings.Builder
+	intext := false
+
+	dec := xml.NewDecoder(bytes.NewReader(data))
+
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+
+		switch t := tok.(type) {
+		case xml.StartElement:
+			switch t.Name.Local {
+			case "t":
+				intext = true
+			case "tab":
+				words.WriteByte('\t')
+			case "br", "cr":
+				words.WriteByte('\n')
+			}
+		case xml.EndElement:
+			switch t.Name.Local {
+			case "t":
+				intext = false
+			case "p":
+				words.WriteByte('\n')
+			}
+		case xml.CharData:
+			if intext {
+				words.Write(t)
+			}
+		}
+	}
+
+	return strings.TrimSpace(words.String()), nil
 }
 
 func extractODT(path string) (string, error) {
-	// TODO: implement odt extraction
-	return "", errors.New("odt extraction not implemented yet")
+	data, err := readZip(path, "content.xml")
+	if err != nil {
+		return "", err
+	}
+
+	var words strings.Builder
+	depth := 0
+
+	dec := xml.NewDecoder(bytes.NewReader(data))
+
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+
+		switch t := tok.(type) {
+		case xml.StartElement:
+			switch t.Name.Local {
+			case "p", "h":
+				depth++
+			case "tab":
+				words.WriteByte('\t')
+			case "line-break":
+				words.WriteByte('\n')
+			case "s":
+				n := 1
+				for _, a := range t.Attr {
+					if a.Name.Local == "c" {
+						if c, err := strconv.Atoi(a.Value); err == nil && c > 0 && c < 1000 {
+							n = c
+						}
+					}
+				}
+
+				words.WriteString(strings.Repeat(" ", n))
+			}
+		case xml.EndElement:
+			switch t.Name.Local {
+			case "p", "h":
+				depth--
+				words.WriteByte('\n')
+			}
+		case xml.CharData:
+			if depth > 0 {
+				words.Write(t)
+			}
+		}
+	}
+
+	return strings.TrimSpace(words.String()), nil
 }
 
 func createItem(source, content string) (Item, error) {

@@ -75,9 +75,8 @@ archive serve                      # serve the UI + JSON API on localhost:8080
 | `.txt`                    | ✅ Supported        |
 | `.md`                     | ✅ Supported        |
 | `.pdf`                    | 🚧 Not implemented  |
-| `.docx`                   | 🚧 Not implemented  |
-| `.doc`                    | 🚧 Not implemented  |
-| `.odt`, `.odf`            | 🚧 Not implemented  |
+| `.docx`                   | ✅ Supported |
+| `.odt`            | ✅ Supported |
 
 ### Desktop
 
@@ -120,7 +119,8 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 
 ### Content
 
-- [ ] Text extraction for PDF, DOCX, DOC and ODT files
+- [x] Text extraction for DOCX and ODT files
+- [ ] Text extraction for PDF
 - [x] Save a copy of the page's HTML alongside the extracted text (served at `/items/{id}/html`)
 - [x] Save the page's images and stylesheets, so the saved copy renders fully offline
 - [x] Skip duplicates when the same source is added twice
