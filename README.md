@@ -86,9 +86,9 @@ dist/archive-desktop
 
 Or open <http://localhost:8080> in a browser while `archive serve` is running.
 
-| Add a page or file                     | Read a saved page                              |
-| -------------------------------------- | ---------------------------------------------- |
-| ![Add view](docs/screenshots/add.png) | ![Viewer](docs/screenshots/webview.png) |
+| Add a page or file                     | Read a saved page                              | Read a markdown note                                |
+| -------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| ![Add view](docs/screenshots/add.png) | ![Viewer](docs/screenshots/webview.png) | ![Markdown note](docs/screenshots/md-render.png) |
 
 ### Data
 
@@ -140,5 +140,5 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 - [x] Better UI, likely rebuilt with Svelte and compiled into `ui/` so the Go embed keeps working
 - [x] Native file picker for adding files
 - [x] Viewer for saved pages (a sandboxed iframe on `/items/{id}/html`)
-- [ ] Markdown renderer
+- [x] Markdown renderer
 - [ ] Package as a macOS `.app` bundle

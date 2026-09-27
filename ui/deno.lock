@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "npm:@sveltejs/vite-plugin-svelte@^7.3.1": "7.3.1_svelte@5.57.1_vite@8.3.1",
+    "npm:marked@^18.0.14": "18.0.14",
     "npm:svelte@^5.57.1": "5.57.1",
     "npm:vite@^8.3.1": "8.3.1"
   },
@@ -274,6 +275,10 @@
         "@jridgewell/sourcemap-codec"
       ]
     },
+    "marked@18.0.14": {
+      "integrity": "sha512-mBHK6FBHuBAlhgRe88w9F0O1AbwwXJUcQibUbC/QcdTbVGAD7aWza+xt3N6oT/jCZx3/OMeS+8rnuiHZcQ9s7A==",
+      "bin": true
+    },
     "nanoid@3.3.19": {
       "integrity": "sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug==",
       "bin": true
@@ -381,6 +386,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@sveltejs/vite-plugin-svelte@^7.3.1",
+        "npm:marked@^18.0.14",
         "npm:svelte@^5.57.1",
         "npm:vite@^8.3.1"
       ]

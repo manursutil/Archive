@@ -1,9 +1,12 @@
 <script>
+  import { marked } from "marked";
+
   let { item, onclose, ondelete } = $props();
 
   let text = $state("");
   let confirming = $state(false);
   let isWeb = $derived(/^https?:\/\//.test(item.source));
+  let isMarkdown = $derived(/\.md$/i.test(item.source));
 
   $effect(() => {
     const id = item.id;
@@ -20,6 +23,20 @@
 
     return () => (stale = true);
   });
+
+  function markdownPage(md) {
+    return `<style>${markdownStyle}</style>${marked.parse(md)}`;
+  }
+
+  const markdownStyle = `
+    body { margin: 0; padding: 22px; font: 13px/1.6 "Departure Mono", monospace; color: #222; background: #eee; }
+    body > :first-child { margin-top: 0; }
+    img { max-width: 100%; }
+    pre { overflow: auto; padding: 11px; background: #ccc; }
+    code { font: inherit; }
+    blockquote { margin-left: 0; padding-left: 11px; border-left: 2px solid #8e8e8e; color: #6c6c58; }
+    a { color: currentColor; }
+  `;
 
   function open() {
     if (window.openExternal) window.openExternal(item.source);
@@ -49,6 +66,10 @@
   {#if item.hasHtml}
     <!-- the server also sends sandbox -->
     <iframe sandbox="" src="/items/{item.id}/html" title={item.title || item.source}></iframe>
+  {:else if isMarkdown}
+    {#key text}
+      <iframe sandbox="" srcdoc={markdownPage(text)} title={item.title}></iframe>
+    {/key}
   {:else}
     <pre>{text}</pre>
   {/if}

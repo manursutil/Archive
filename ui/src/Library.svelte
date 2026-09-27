@@ -125,6 +125,7 @@
     width: 100%;
     text-align: left;
     padding: 22px;
+    overflow-wrap: anywhere;
   }
 
   .card.selected {
@@ -160,7 +161,6 @@
 
   .label {
     margin-bottom: 11px;
-    overflow-wrap: anywhere;
   }
 
   .excerpt {
