@@ -2,6 +2,8 @@
 
 Save web pages and documents to a local SQLite database and search them with full-text search (FTS5). Use it from the command line, or through a small desktop app. Everything stays on your machine.
 
+![Library view](docs/screenshots/main.png)
+
 ```
  archive-desktop (Deno + native webview)
         │  spawns + HTTP on localhost:8080
@@ -85,6 +87,10 @@ dist/archive-desktop
 
 Or open <http://localhost:8080> in a browser while `archive serve` is running.
 
+| Add a page or file                     | Read a saved page                              |
+| -------------------------------------- | ---------------------------------------------- |
+| ![Add view](docs/screenshots/add.png) | ![Viewer](docs/screenshots/webview.png) |
+
 ### Data
 
 The database is at `<user config dir>/archive/archive.db` (`~/Library/Application Support/archive/` on macOS, `~/.config/archive/` on Linux). The CLI and the desktop app share it. Override with `ARCHIVE_DB=/path/to/file.db`.
@@ -119,6 +125,11 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 - [ ] Save the page's images and stylesheets, so the saved copy renders fully offline
 - [x] Skip duplicates when the same source is added twice
 - [x] Store a title for each item (page `<title>` or file name)
+- [ ] Watch a folder (e.g. an Obsidian vault) and keep its files indexed: `archive watch <dir>`
+
+### Capture
+
+- [ ] One-click save from the browser, via a bookmarklet or small extension that posts to `localhost:8080`
 
 ### Search
 

@@ -11,7 +11,7 @@ archive
 .DS_Store
 
 # Personal notes
-/guide.md
+/docs/dev/
 
 # Svelte UI
 /ui/node_modules
