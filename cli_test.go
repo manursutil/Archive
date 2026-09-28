@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCLI(t *testing.T) {
@@ -118,4 +119,52 @@ func TestCLI(t *testing.T) {
 
 		invoke(t, dir, 1, "unable to open database", "list")
 	})
+}
+
+func TestScan(t *testing.T) {
+	db := testDB(t)
+	if err := initDB(db); err != nil {
+		t.Fatal(err)
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.txt")
+	seen := map[string]time.Time{}
+
+	found := func(term string) bool {
+		t.Helper()
+		res, err := search(db, term)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(res) > 0
+	}
+
+	if err := os.WriteFile(path, []byte("original walrus"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	scan(db, dir, seen)
+	if !found("walrus") {
+		t.Fatal("new file not indexed")
+	}
+
+	if err := os.WriteFile(path, []byte("edited narwhal"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	later := time.Now().Add(time.Minute)
+	if err := os.Chtimes(path, later, later); err != nil {
+		t.Fatal(err)
+	}
+	scan(db, dir, seen)
+	if !found("narwhal") || found("walrus") {
+		t.Fatal("edited file not re-indexed")
+	}
+
+	items, err := list(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("got %d items, want 1", len(items))
+	}
 }

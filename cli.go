@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 )
 
 // run dispatches a command to its handler.
@@ -23,6 +26,9 @@ func run(db *sql.DB, cmd string, args []string) {
 		cmdSearch(db, args[0])
 	case "serve":
 		cmdServe(db, 8080)
+	case "watch":
+		checkArgsLength(args)
+		cmdWatch(db, args[0])
 	default:
 		printUsage()
 		os.Exit(1)
@@ -97,5 +103,49 @@ func cmdSearch(db *sql.DB, arg string) {
 			match.Source,
 			match.Snippet,
 		)
+	}
+}
+
+func scan(db *sql.DB, dir string, seen map[string]time.Time) {
+	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+
+		if tp, _ := parseArg(path); tp != "path" {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil || !info.ModTime().After(seen[path]) {
+			return nil
+		}
+
+		seen[path] = info.ModTime()
+
+		item, err := getItem(path)
+		if err == nil {
+			err = upsert(db, item)
+		}
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", path, err)
+		}
+
+		return nil
+	})
+}
+
+func cmdWatch(db *sql.DB, dir string) {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	seen := map[string]time.Time{}
+	for {
+		scan(db, dir, seen)
+		time.Sleep(2 * time.Second)
 	}
 }

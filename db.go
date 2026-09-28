@@ -44,11 +44,18 @@ func initDB(db *sql.DB) error {
 		return err
 	}
 
-	_, err := db.Exec(`CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
+	if _, err := db.Exec(`CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
 		INSERT INTO items_fts(rowid, content) VALUES (new.id, new.content);
 	END;
 	CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
 		INSERT INTO items_fts(items_fts, rowid, content) VALUES ('delete', old.id, old.content);
+	END;`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`CREATE TRIGGER IF NOT EXISTS items_au AFTER UPDATE ON items BEGIN
+	INSERT INTO items_fts(items_fts, rowid, content) VALUES ('delete', old.id, old.content);
+	INSERT INTO items_fts(rowid, content) VALUES (new.id, new.content);
 	END;`)
 
 	return err
@@ -145,4 +152,10 @@ func search(db *sql.DB, searchTerm string) ([]SearchResult, error) {
 	}
 
 	return results, rows.Err()
+}
+
+func upsert(db *sql.DB, item Item) error {
+	_, err := db.Exec(`INSERT INTO items (title, source, content, html) VALUES (?, ?, ?, ?)
+	ON CONFLICT(source) DO UPDATE SET title=excluded.title, content=excluded.content, html=excluded.html, savedAt=CURRENT_TIMESTAMP`, item.Title, item.Source, item.Content, item.HTML)
+	return err
 }

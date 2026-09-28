@@ -29,7 +29,8 @@ func printUsage() {
   - archive list
   - archive del <id>
   - archive search 'terms to search'
-	- archive serve`,
+  - archive serve
+  - archive watch <dir>`,
 	)
 }
 

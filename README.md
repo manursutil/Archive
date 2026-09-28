@@ -66,6 +66,7 @@ archive list                       # list saved items
 archive search 'terms'             # full-text search
 archive del <id>                   # delete an item
 archive serve                      # serve the UI + JSON API on localhost:8080
+archive watch <dirPath>            # watch a directory and keep files indexed
 ```
 
 ### Supported sources
@@ -82,7 +83,7 @@ archive serve                      # serve the UI + JSON API on localhost:8080
 ### Desktop
 
 ```sh
-dist/archive-desktop
+./dist/archive-desktop
 ```
 
 Or open <http://localhost:8080> in a browser while `archive serve` is running.
@@ -126,7 +127,7 @@ The UI in `ui/` is embedded into the Go binary, so any edit there needs a Go reb
 - [x] Save the page's images and stylesheets, so the saved copy renders fully offline
 - [x] Skip duplicates when the same source is added twice
 - [x] Store a title for each item (page `<title>` or file name)
-- [ ] Watch a folder (e.g. an Obsidian vault) and keep its files indexed: `archive watch <dir>`
+- [X] Watch a folder (e.g. an Obsidian vault) and keep its files indexed: `archive watch <dir>`
 
 ### Capture
 
