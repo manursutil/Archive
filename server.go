@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,7 +49,7 @@ func cmdServe(db *sql.DB, port int) {
 			return
 		}
 
-		if err := add(db, item); err != nil {
+		if _, err := add(db, item); err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
@@ -122,7 +123,13 @@ func cmdServe(db *sql.DB, port int) {
 	mux.Handle("GET /", http.FileServerFS(ui))
 
 	addr := fmt.Sprintf("localhost:%d", port)
-	log.Fatal(http.ListenAndServe(addr, localOnly(mux)))
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("could not listen on %s: %v", addr, err)
+	}
+
+	log.Printf("Archive is ready at http://%s (Ctrl+C to stop)", addr)
+	log.Fatal(http.Serve(listener, localOnly(mux)))
 }
 
 // accept only localhost requests

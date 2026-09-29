@@ -55,10 +55,16 @@ func cmdAdd(db *sql.DB, arg string) {
 		os.Exit(1)
 	}
 
-	if err := add(db, item); err != nil {
+	id, err := add(db, item)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+	title := item.Title
+	if title == "" {
+		title = item.Source
+	}
+	fmt.Printf("Saved #%d: %s\n", id, title)
 }
 
 func cmdList(db *sql.DB) {
@@ -66,6 +72,10 @@ func cmdList(db *sql.DB) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
+	}
+	if len(items) == 0 {
+		fmt.Println("No saved items yet. Use `archive add <url|path>` to save one.")
+		return
 	}
 
 	for _, item := range items {
@@ -94,6 +104,10 @@ func cmdSearch(db *sql.DB, arg string) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+	if len(matches) == 0 {
+		fmt.Printf("No matches for %q.\n", arg)
+		return
+	}
 
 	for _, match := range matches {
 		fmt.Printf(
@@ -106,7 +120,8 @@ func cmdSearch(db *sql.DB, arg string) {
 	}
 }
 
-func scan(db *sql.DB, dir string, seen map[string]time.Time) {
+func scan(db *sql.DB, dir string, seen map[string]time.Time) int {
+	indexed := 0
 	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
@@ -130,10 +145,13 @@ func scan(db *sql.DB, dir string, seen map[string]time.Time) {
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", path, err)
+		} else {
+			indexed++
 		}
 
 		return nil
 	})
+	return indexed
 }
 
 func cmdWatch(db *sql.DB, dir string) {
@@ -144,8 +162,11 @@ func cmdWatch(db *sql.DB, dir string) {
 	}
 
 	seen := map[string]time.Time{}
+	fmt.Printf("Watching %s for changes (checks every 2 seconds)\n", dir)
 	for {
-		scan(db, dir, seen)
+		if indexed := scan(db, dir, seen); indexed > 0 {
+			fmt.Printf("Indexed or updated %d file(s)\n", indexed)
+		}
 		time.Sleep(2 * time.Second)
 	}
 }

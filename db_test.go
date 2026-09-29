@@ -50,12 +50,12 @@ func TestDatabase(t *testing.T) {
 	}
 
 	for i := 0; i < 12; i++ {
-		if err := add(db, Item{Title: fmt.Sprintf("note %d", i), Source: fmt.Sprintf("note-%d.txt", i), Content: "hello searchable world"}); err != nil {
+		if _, err := add(db, Item{Title: fmt.Sprintf("note %d", i), Source: fmt.Sprintf("note-%d.txt", i), Content: "hello searchable world"}); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	if err := add(db, Item{Source: "https://example.com", Content: "page", HTML: "<p>page</p>"}); err != nil {
+	if _, err := add(db, Item{Source: "https://example.com", Content: "page", HTML: "<p>page</p>"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -131,7 +131,7 @@ func TestDatabaseErrors(t *testing.T) {
 			t.Fatal("init succeeded")
 		}
 
-		if err := add(db, Item{}); err == nil {
+		if _, err := add(db, Item{}); err == nil {
 			t.Fatal("add succeeded")
 		}
 
